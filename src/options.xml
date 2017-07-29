@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<options>
+
+  <!-- side-wide options -->
+  <option name="site.title">Byteshell</option>
+  <option name="site.author">Achim Christ</option>
+  <option name="site.about">//www.achim-christ.de</option>
+
+  <option name="site.url" devmode="dev">//localhost:8000/</option>
+  <option name="site.url" devmode="prod">//www.byteshell.net/</option>
+  <option name="site.assets.url" devmode="dev">//localhost:8000/assets/</option>
+  <option name="site.assets.url" devmode="prod">//www.byteshell.net/assets/</option>
+
+  <!-- stylesheets to import -->
+  <option name="cdn.stylesheets">
+    <link rel="stylesheet" href="css/bootstrap.min.css" />
+    <!--link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/css/bootstrap.min.css" integrity="sha384-rwoIResjU2yc3z8GV/NPeZWAv56rSmLldC3R/AZzGRnGxQQKnKkoFVhFQhNUwEyJ" crossorigin="anonymous" /-->
+
+    <!--link rel="stylesheet" href="css/font-awesome.min.css" /-->
+    <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous" />
+
+    <link rel="stylesheet" href="//fonts.googleapis.com/css?family=Source+Sans+Pro" />
+  </option>
+
+  <!-- scripts to import -->
+  <option name="cdn.scripts">
+    <!--script src="js/jquery.min.js" /-->
+    <script src="//code.jquery.com/jquery-3.1.1.slim.min.js" integrity="sha384-A7FZj7v+d/sdmMqp/nOQwliLvUsJfDHW+k9Omg/a/EheAdgtzNs3hpfag6Ed950n" crossorigin="anonymous" />
+    <!--script><![CDATA[window.jQuery || document.write('<script src="SITE.URLjs/jquery.min.js"><\/script>')]]></script--><!-- unsafe inline JavaScript -->
+
+    <!--script src="js/tether.min.js" /-->
+    <script src="//cdnjs.cloudflare.com/ajax/libs/tether/1.4.0/js/tether.min.js" integrity="sha384-DztdAPBWPRXSA/3eYEEUWrWCy7G5KFbe8fFjk5JAIxUYHKkDx6Qin1DkWx51bBrb" crossorigin="anonymous" />
+
+    <!--script src="js/bootstrap.min.js" /-->
+    <script src="//maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/js/bootstrap.min.js" integrity="sha384-vBWWzlZJ8ea9aCX4pEW3rVHjgjt7zpkNpZk+02D9phzyeVkE+jo0ieGizqPLForn" crossorigin="anonymous" />
+
+    <!-- the following scripts are installed via bower and compiled into the main script.js file -->
+    <!--script src="//cdnjs.cloudflare.com/ajax/libs/anchor-js/3.2.2/anchor.min.js /-->
+    <!--script src="//cdnjs.cloudflare.com/ajax/libs/headroom/0.9.3/headroom.min.js" /-->
+  </option>
+
+  <!-- social links -->
+  <option name="footer.sociallinks">
+    <link rel="license" href="//creativecommons.org/licenses/by/4.0/"><icon src="fa-creative-commons" /></link>
+    <link href="//github.com/acch"><icon src="fa-github" /></link>
+    <link href="//www.ibm.com/developerworks/community/blogs/storageneers/search?t=entry&amp;q=Achim%20Christ"><img src="dW_black.png" alt="developerWorks" /></link>
+    <link href="//github.com/acch/feedback"><icon src="fa-envelope" /></link>
+  </option>
+
+  <!-- the following options will be exported to JavaScript (options.json) -->
+  <export type="json">
+    <option name="navbarOffset">300</option>
+    <option name="navbarTolerance">5</option>
+  </export>
+
+  <!-- the following options will be exported to Grunt -->
+  <export type="grunt">
+    <option name="responive_image.size">510</option>
+    <option name="responive_image.size">610</option>
+    <!--option name="responive_image.size">730</option-->
+    <option name="responive_image.size">770</option>
+  </export>
+
+</options>

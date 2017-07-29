@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<home>
+
+  <title>Welcome</title>
+  <subtitle>There's no place like localhost</subtitle>
+
+  <introduction>
+
+    <p>Welcome to this fine piece of carefully crafted hypertext&#8230; The authors sincerely hope that you find something interesting or, better yet, something useful here!</p>
+
+    <collapse>
+      <p>If you do then please feel free to use the content in whichever way you consider appropriate. Go ahead and share, link or copy &#8212; but don't forget to credit the origin clearly. The authors were glad if you'd let them know in which way you reuse the content and provide some feedback, but you don't have to if you don't want to.</p>
+      <p>To make a long story short: Content on this site is licensed under a <a rel="license" href="//creativecommons.org/licenses/by/4.0/">Creative Commons Attribution 4.0 International License</a>.</p>
+      <p>This site is 100% ad-free and does not track it's visitors.</p>
+    </collapse>
+
+  </introduction>
+
+</home>

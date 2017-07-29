@@ -1,0 +1,208 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<articles>
+
+  <title>Articles</title>
+  <subtitle>Nerdy discoveries from the world of bits and bytes</subtitle>
+
+  <introduction>Informational text entries on technical topics. Discrete posts, chronologically sorted.</introduction>
+
+  <path>article/</path>
+
+  <article id="lacp">
+    <date>2015-10-06</date>
+    <title>Enhancing IP Network Performance with LACP</title>
+    <subtitle>Transmit Hash Policy explained</subtitle>
+
+    <short>With the advent of high-performance Ethernet network technology, such as 10 GbE and 40 GbE, more and more performance critical workloads are being migrated to such Ethernet-based IP networks. While traditionally this was the domain of (Fibre Channel based) SAN infrastructure in the past, more and more new workloads are being deployed on high-speed IP networks today. I receive an increasing number of questions on enhancing performance of solutions based on such IP networks. 10 Gb Ethernet being the de facto standard for performance critical environments today (with 40 GbE on the horizon), more and more applications exceed the bandwidth which a single link can provide. To further enhance performance in such situations multiple links can be combined into one logical connection. However, utilizing the full potential of this requires a deeper understanding of the available options. This is what I'm trying to explain in this article.</short>
+
+    <content>
+      <p class="text-muted"><em>This article was previously published on <a href="//www.ibm.com/developerworks/community/blogs/storageneers/entry/Enhancing_IP_Network_Performance_with_LACP">Storageneers</a>.</em></p>
+
+      <h2 id="background">Background</h2>
+
+      <p><a href="//en.wikipedia.org/wiki/Multipath_I/O">Multipathing</a> is a commonly used technique to improve availability and throughput in Fibre Channel SANs. If servers are connected with more than one physical link to a Fibre Channel SAN then multipathing ensures that all available links are in fact being used to transfer data. Should one link fail then the remaining link(s) keep the server connected with a reduced throughput.</p>
+      <p>In Ethernet / IP networks <a href="//en.wikipedia.org/wiki/Link_aggregation">link aggregation</a> (more specifically LACP) is commonly used to achieve this behavior. By default, LACP (802.3ad / bond mode 4) distributes sessions across all available Ethernet links which are also referred to as slave interfaces. A session is determined by source and target MAC address. This means that a single source server (MAC) connecting to a single target server (MAC) will only utilize a single slave (Ethernet link) &#8212; no matter how many slaves are available in the bond, and no matter how many sessions a client initiates.</p>
+      <p>In situations where large numbers of clients connect to a single (storage) server configuring this server with a multi-port LACP bond makes a lot of sense. LACP will distribute the sessions (determined by the client MAC) across all available slaves in the bond of the server. This way a server can utilize 2, 4, or even 8 Ethernet ports uniformly, assuming that enough clients connect to the server (fan-in). The clients, however, will only utilize a single link &#8212; configuring LACP on this end of the connection does not provide too great value, unless clients connect to multiple storage servers in parallel (fan-out).</p>
+
+      <img src="example-many-to-one.png" style="width: 80%" alt="Example with many clients connecting to one server" />
+
+      <p>There are situations, however, in which only very few clients produce a great amount of data that needs to be transferred over Ethernet to a storage server. Examples for such configurations are backup servers, video surveillance gateways, streaming media servers and the like. Such clients can easily saturate a single Ethernet port (1 Gb, 10 Gb or 40 Gb &#8212; it doesn't really matter).</p>
+
+      <h2 id="xmit-hash-policy">Introducing Transmit Hash Policy</h2>
+
+      <p>To improve performance in such configurations the default LACP behavior as explained above can be tweaked. LACP has a configurable option named 'Transmit Hash Policy'. The hash policy determines the algorithm by which LACP distributes sessions across available slaves. The default hash policy ('layer 2') will distribute sessions based on source and target MAC address as explained above. An alternate hash policy is 'layer 2+3' which will also consider the IP address when distributing sessions. An Ethernet interface can be configured with more than one IP address and if the application / workload allows then data can be sent to multiple IP addresses in parallel. This configuration allows for utilizing more than one physical link for a connection between a given pair of servers...</p>
+
+      <h3 id="example-nfs-layer23">Example with NFS Client and Server on Linux</h3>
+
+      <p>The following example utilizes the NFS protocol to transfer data, but the underlying concepts apply to most IP-based protocols alike.<br />
+      Imagine a NFS server is connected with two 10 GbE ports to a switch, and a single LACP bond is configured for both of these ports. A NFS client is also connected with two 10 GbE ports to the same switch. Again, LACP is configured on both ports. The server has a single IP address configured on the LACP bond interface, and the client mounts an export using this IP address. No matter how many parallel processes the client runs, it will be bound to a single 10 GbE link &#8212; which, in the case of NFS, will provide a maximum throughput of roughly 850 MB/s.</p>
+
+      <img src="example-one-to-one-nfs-layer2.png" alt="Example with one NFS client connecting to one NFS server with layer2 transmit hash policy" />
+
+      <p>To improve performance of the NFS client in this configuration one could change the configuration of the LACP bond interface on both, client and server. In case of Linux one would add the following bonding options to the configuration of the bond interface:</p>
+
+      <pre><code>/etc/sysconfig/network-scripts/ifcfg-bond0:
+  ...
+  BONDING_OPTS="mode=802.3ad miimon=100 xmit_hash_policy=layer2+3"
+  ...</code></pre>
+
+      <p>Much more detail on available bonding modes and options can be found <a href="//www.kernel.org/doc/Documentation/networking/bonding.txt">here</a>.</p>
+      <p>One would then need to add additional IP addresses to the LACP bond interface of the NFS server. NFS clients will send all traffic from the same IP address so there's no need to add additional IP addresses on the NFS client.</p>
+      <p>The NFS client is then able to mount the same export multiple times using different IP addresses configured on the server. This will result in multiple mountpoints and the application / workload needs to be designed carefully to equally utilize all available mountpoints. In addition, care needs to be taken so that I/O to these mountpoints does not interfere with one another. To minimize this risk it is recommended that traffic to each mountpoint is performed to a dedicated subdirectory within the export. But if the client is able to evenly distribute parallel traffic across all mountpoints / subdirectories then the NFS client is able to utilize multiple Ethernet links in parallel &#8212; resulting is significantly enhanced throughput.</p>
+
+      <img src="example-one-to-one-nfs-layer23.png" alt="Example with one NFS client connecting to one NFS server with layer2+3 transmit hash policy" />
+
+      <p>Using this configuration in internal testing with a pair of x3650-M3 servers the NFS throughput could be increased from ~850 MB/s to ~1500 MB/s. Note that data was written to and read from separate subdirectories per mountpoint in order to avoid any interference and prevent data corruption.</p>
+
+      <h3 id="example-nfs-layer34">Other Options</h3>
+
+      <p>As these tests show, changing the default Transmit Hash Policy from 'layer 2' to 'layer 2+3' can provide significant benefit in situations where few servers produce a great amount of data that needs to be transferred. However, the 'layer 2+3' policy requires multiple IP addresses on the storage server to fully utilize multiple physical links, and the application / workload needs to be designed carefully to span all available addresses.</p>
+      <p>Another available option is the 'layer 3+4' policy which uses upper layer protocol information such as TCP / UDP ports. This will allow for multiple connections to different ports to span different physical links. In most real-life deployments this provides significant additional benefit as it yields the best distribution of traffic for the majority of use cases. Even though the 'layer 3+4' policy introduces certain risk of out of order delivery of packets in very specific situations (most traffic will not meet this criteria), one should carefully test and consider the possible performance benefits.</p>
+
+      <h3 id="example-tsm">Example with Spectrum Protect Client and Server on AIX</h3>
+
+      <p>Imagine a setup with an IBM Spectrum Protect (TSM) backup client connected over 2 x 10 Gb Ethernet links to the network switch and a Spectrum Protect server that is also connected over 2 x 10 Gb Ethernet links to the same network switch. Both, the Spectrum Protect client and server run on AIX and have one TCP/IP address each. The following picture illustrates this setup:</p>
+
+      <img src="example-one-to-one-tsm.png" style="width: 80%" alt="Example with one TSM client connecting to one TSM server" />
+
+      <p>In AIX two (or more) network interfaces can be aggregated to form a so called '<a href="//www.ibm.com/support/knowledgecenter/ssw_aix_72/com.ibm.aix.networkcomm/etherchannel_intro.htm">EtherChannel</a>'. Even though the Spectrum Protect client is able to establish multiple connections (sessions) over a single IP address to the server in parallel, the default EtherChannel configuration will not be able to achieve more than 1 GB/s throughput regardless of the number of configured links. This is the approximate maximum speed for a single 10 GbE link. In order to use two (or more) Ethernet links in parallel according to the setup above it is important to configure the EtherChannel in AIX (using smitty) with the following parameters:</p>
+
+      <dl class="row">
+        <dt class="col-xs-4 col-lg-3">Mode:</dt>
+        <dd class="col-xs-8 col-lg-9">802.3ad</dd>
+        <dt class="col-xs-4 col-lg-3">Hash Mode:</dt>
+        <dd class="col-xs-8 col-lg-9">src_dst_port</dd>
+      </dl>
+
+      <p>Using this configuration in internal testing resulted in roughly 2 GB/s throughput backing up data from a single client to the server in a single session.</p>
+
+      <h2 id="summary">Summary</h2>
+
+      <p>Multipathing is more complex in Ethernet / IP networks when compared to traditional Fibre Channel SANs. LACP is generally able to provide the same improvements in regards to availability and throughput, but it requires proper planning and increases operational complexity to fully leverage its benefits.</p>
+      <p>There are other solutions available to the problems described above, most of which utilize higher layer protocol features. An example is <a href="//en.wikipedia.org/wiki/Multipath_TCP">Multipath TCP</a> which enables a single TCP connections to span multiple physical links. Multipath TCP is currently flagged as an experimental standard by the <a href="//tools.ietf.org/html/rfc6824">IETF</a> and only very few commercial implementations exist as of today.</p>
+      <p>Another alternative are intelligent <a href="//www.ibm.com/developerworks/community/blogs/storageneers/entry/Is_a_scale_out_NAS_system_the_same_as_a_scale_out_file_system">scale-out file systems</a> which circumvent the bottleneck of individual point-to-point connections alltogether.</p>
+    </content>
+  </article>
+
+  <article id="fail2ban">
+    <date>2017-02-05</date>
+    <title>Protecting ownCloud with Fail2Ban</title>
+    <subtitle>Efficiently prevent (or at least slow down) brute-force attacks on your private cloud</subtitle>
+
+    <short>Brute-force is the process of simply trying all possible username and password combinations in order to gain access to a service &#8212; finding valid credentials by force. Any publicly accessible service could become target of such assaults, with public web sites and servers on the very top of the list. This article briefly describes the security risk associated with such type of password guessing attacks, and it gives concrete guidance on possible counter-measures. While the sample refers to popular Open Source software ownCloud, the underlying concepts apply to any modern web application running on your Linux server.</short>
+
+    <content>
+      <h2 id="background">Background</h2>
+
+      <p>While some <a href="//www.ncsc.gov.uk/guidance/password-guidance-simplifying-your-approach">argue</a> that <a href="//en.wikipedia.org/wiki/Brute-force_attack">brute-force</a> is no longer the predominant attack vector these days, folks at <a href="//sucuri.net/security-reports/brute-force/">Sucuri</a> do regularly publish reports which prove that such attacks still need to be taken very seriously. If the (potential) value of access to a service is high enough then it will justify the necessary efforts for attackers to perform brute-force, among other types of attacks. A private cloud service hosting personal documents, contacts, and calendar information of its users is a very attractive target; and breaking in to such services is a profitable business nowadays.</p>
+
+      <h2 id="problem">The Problem</h2>
+
+      <p>Passwords which are stolen during site hacks are traded and exchanged openly on the Internet. To make matters worse, humans all follow the same simple rules to come up with, and remember, pseudo-complex passwords. This means that the number of possible passwords to be tried in guessing attacks can be reduced significantly, in turn reducing the number of login attempts necessary to find the correct username and password combination. Instead of trying all possible password combinations, attackers first focus on passwords used for other sites which have been compromised. In addition to that, there are few basic rules which produce passwords which many users are likely to choose: adding a number and a special character to your cat's name after all is not as innovative as you may think it is&#8230;</p>
+
+      <img src="//imgs.xkcd.com/comics/password_strength.png" alt="Password Strength Webcomic by xkcd.com" />
+
+      <p>As a result, brute-force attacks have a pretty decent chance of being successful. This is especially true if they remain unnoticed by the owner of the site for an extended period of time. You are regularly checking your relevant server log files, are you?</p>
+
+      <h3 id="other_problem">The Other Problem</h3>
+
+      <p>In many cases, brute-force goes hand in hand with some kind of <a href="//en.wikipedia.org/wiki/Denial-of-service_attack">denial-of-service</a> attack. Think about the resources required by your web application to process and verify a single login attempt: The web server has to serve the login page and accept the login request, PHP has to interpret the code on the login page, which in turn fetches some information from the database. Imagine the time and resources required to serve 100 such attempts. Is your server capable of serving 1.000 login attempts at once? 10.000?</p>
+
+      <h2 id="introduction">Introducing Fail2Ban</h2>
+
+      <p>Enter <a href="http://www.fail2ban.org/">Fail2Ban</a>. Fail2Ban is an <a href="//en.wikipedia.org/wiki/Intrusion_detection_system">intrusion prevention tool</a> designed to automatically monitor log files on your server, and capable of taking appropriate actions if something suspicious is found. It is typically used to monitor the log files of, say, your SSH server. If Fail2Ban finds too many failed login attempts in this log then it will block ('ban') the IP address initiating such attempts for a certain period of time. This is typically done by adding drop rules to the Linux kernel firewall. All this occurs automatically, without any user intervention.</p>
+
+      <img src="fail2ban-logo.jpg" style="width: 60%" alt="Fail2Ban Logo" />
+
+      <p>Nowadays more and more web applications implement similar functionality themselves, typically by using 3rd party <a href="//wordpress.org/plugins/tags/brute-force">plugins</a>. However, the resources required to verify and deny access to a site from within a web application (written in a high-level script language, interpreted by a web server) are significantly higher than what the very efficient Linux kernel firewall (<a href="//en.wikipedia.org/wiki/Netfilter">Netfilter</a>) uses. In scenarios in which large numbers of requests are sent to a server it can be an important advantage to block such requests upon arrival, without even executing a single line of PHP code.</p>
+
+      <p>The following section illustrates configuration and basic usage of Fail2Ban based on a typical <a href="//en.wikipedia.org/wiki/LAMP_(software_bundle)">LAMP</a> stack application: <a href="//owncloud.org">ownCloud</a>. This sample was tested with ownCloud Server version 9.1 on Ubuntu Linux. Note that other versions of ownCloud may require adaption of the filter rules used by Fail2Ban.</p>
+
+      <img src="owncloud-logo.png" style="width: 60%" alt="ownCloud Logo" />
+
+      <h3 id="owncloud">Configuring ownCloud</h3>
+
+      <p>First of all, ownCloud needs to be configured so that it writes the relevant messages to a log file in an appropriate format:</p>
+
+      <pre><code>/var/www/owncloud/config/config.php:
+  ...
+  'logfile' => '/var/log/owncloud.log',
+  'loglevel' => 2,
+  'logtimezone' => 'Europe/Berlin',
+  ...</code></pre>
+
+      <p>It's important to understand that the <code>logtimezone</code> setting needs to match the operating system's configured timezone, otherwise Fail2Ban will not be able to properly interpret the log messages. Unless your system runs <a href="//en.wikipedia.org/wiki/Coordinated_Universal_Time">UTC</a>, which is ownCloud's default, this line in the configuration file needs to be adapted accordingly.</p>
+      <p>That's it for configuring ownCloud. Failed login attempts should now be logged in the configured <code>logfile</code>, so that Fail2Ban can be configured to monitor such events and react accordingly. Please verify existence of the mentioned entries in the configured log file prior to&#8230;</p>
+
+      <h3 id="fail2ban">Configuring Fail2Ban</h3>
+
+      <p>If not done so already, now is a good time to install Python-based <a href="http://www.fail2ban.org/wiki/index.php/Downloads">Fail2Ban</a>. Packages for all major distributions should be readily available from the standard repositories &#8212; the following is all it takes to install the tool on Ubuntu Linux:</p>
+
+      <pre><code># sudo apt-get install fail2ban</code></pre>
+
+      <p>Fail2Ban implements a concept of jails, filters and actions. A <a href="http://www.fail2ban.org/wiki/index.php/MANUAL_0_8#Jails">jail</a> basically associates a <a href="http://www.fail2ban.org/wiki/index.php/MANUAL_0_8#Filters">filter</a> (regular expressions used to detect break-in attempts) and <a href="http://www.fail2ban.org/wiki/index.php/MANUAL_0_8#Actions">actions</a> to a log file. Let's start with adding a jail for ownCloud:</p>
+
+      <pre><code>/etc/fail2ban/jail.local:
+  ...
+  [owncloud]
+  enabled  = true
+  filter   = owncloud
+  action   = iptables-multiport[name=ownCloud, port="http,https"]
+             sendmail-whois[name=ownCloud, dest=root@localhost, sender=fail2ban@localhost]
+  logpath  = /var/log/owncloud.log
+  ...</code></pre>
+
+      <p>If a match is found according to the filter criteria (more on that in a second) then the <code>iptables-multiport</code> action will block the HTTP(S) ports of your server for the address initiating the requests. Furthermore, an email will be sent to the root account of the system.</p>
+      <p>The jail references a filter which needs to be defined like so:</p>
+
+      <pre><code>/etc/fail2ban/filter.d/owncloud.conf:
+  [Definition]
+  failregex={"reqId":".*","remoteAddr":".*","app":"core","message":"Login failed: '.*' \(Remote IP: \'<![CDATA[<HOST>]]>\'\)","level":2,"time":".*"}
+  ignoreregex=</code></pre>
+
+      <p>This filter configuration essentially instructs Fail2Ban to monitor the log for lines which include the string <code>"Login failed"</code>. In addition to that, it tells Fail2Ban where to find the IP of the initiator in such log messages (after the <code>"Remote IP:"</code> string) &#8212; this is the address that will get blocked by means of iptables drop rules.</p>
+      <p>Fail2Ban itself is implemented as a daemon which needs to be (re)started to activate the new configuration:</p>
+
+      <pre><code># sudo service fail2ban reload</code></pre>
+
+      <p>That's it. If all goes well you now have Fail2Ban monitoring ownCloud for failed login attempts. You can consult <code>/var/log/fail2ban.log</code> for a pretty comprehensive status report. Furthermore, if you have configured email relaying on your server (which you really should) then you will get notified of banned IPs as per the jail configuration mentioned above.</p>
+
+      <h3 id="advice">Hints and Tips</h3>
+
+      <p>To better understand if and how your filter criteria actually works you can manually test it against a given log file by using the following command. This is especially useful for debugging, without running the risk of locking yourself out:</p>
+
+      <pre><code># fail2ban-regex /var/log/owncloud.log /etc/fail2ban/filter.d/owncloud.conf -v</code></pre>
+
+      <p>The output of <code>fail2ban-regex</code> tells you how many lines from the log file were matched and how many lines were missed by the given filter configuration. If no matches are found with your filter then you need to check and adapt the regular expression. Also keep in mind that Fail2Ban will only detect timestamps if the format used in the log file matches the system's timezone set via <code>/etc/timezone</code>.</p>
+      <p>Another important command, <code>fail2ban-client</code>, is used to monitor the current state of a given jail. This includes information on banned IPs. Furthermore, the same command is used to manually unban IPs from a given jail &#8212; which is especially useful after you've locked yourself out:</p>
+
+      <pre><code># fail2ban-client status owncloud
+# fail2ban-client set owncloud unbanip YOURIP</code></pre>
+
+      <p>Now that you have the basic functionality set up and running you might want to spend some additional time fine-tuning the configuration. The number of failed attempts in a given timeframe, as well as the duration for which IPs are banned is configured via options. There are some global options defined in the main configuration file <code>/etc/fail2ban/jail.conf</code>, but each jail can override these global settings with specific parameters. Information on the individual options can be found in the <a href="http://www.fail2ban.org/wiki/index.php/MANUAL_0_8#Jail_Options">manual</a>.</p>
+
+      <pre><code>/etc/fail2ban/jail.local:
+  ...
+  maxretry = 4
+  bantime  = 3000
+  findtime = 600
+  ...</code></pre>
+
+      <p>It is generally recommended to start with a short <code>bantime</code> for testing, for example a few minutes, and then raise this duration once you feel reasonably confident that the filter criteria works as expected.</p>
+
+      <h2 id="conclusion">Conclusion</h2>
+
+      <p>Fail2Ban is a powerful utility when it comes to hardening services accessible via untrusted networks. Even if attackers learn and work around the timings enforced by Fail2Ban this will at least slow down things significantly. For sure such a configuration doesn't yield absolute security, but you still increase your chances that attackers give up and turn to the next site...</p>
+      <p>Nevertheless, it should be noted at this point that a configuration like described in this article doesn't substitute, but only supplements a good overall security strategy. Such a strategy comprises the following aspects:</p>
+
+      <ul>
+        <li>Update software regularly. Set up (email) notifications and treat security updates urgently.</li>
+        <li>Don't use default usernames. It goes without saying that default passwords should be avoided, too.</li>
+        <li>Enable <a href="//en.wikipedia.org/wiki/Multi-factor_authentication">two-factor authentication</a> wherever possible.</li>
+        <li>Use a password manager to generate (and remember) strong, unique passwords for all your services.</li>
+      </ul>
+    </content>
+  </article>
+
+</articles>

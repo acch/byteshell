@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<site
+  xmlns:xi="http://www.w3.org/2001/XInclude">
+
+  <xi:include href="options.xml" parse="xml" />
+  <xi:include href="home.xml" parse="xml" />
+  <xi:include href="articles.xml" parse="xml" />
+  <xi:include href="projects.xml" parse="xml" />
+  <xi:include href="galleries.xml" parse="xml" />
+
+</site>

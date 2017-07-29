@@ -1,0 +1,58 @@
+/* -------------------------------------------------------------------------- *\
+   Custom variables - use this file to override Bootstrap variables
+   --------------------------------------------------------------------------
+
+   This file is part of XML-to-bootstrap.
+   https://github.com/acch/XML-to-bootstrap
+
+   Copyright 2016 Achim Christ
+   Released under the MIT license
+   (https://github.com/acch/XML-to-bootstrap/blob/master/LICENSE)
+
+\* -------------------------------------------------------------------------- */
+
+$font-family-base:              'Source Sans Pro', sans-serif;
+$line-height-base:              1.4;
+
+$base-color-dark:               #4f6128;
+$base-color:                    #ddf8a2;
+$base-color-light:              #f3fce0;
+//$base-color-lighter:            #f0f4ed;
+
+$gray-dark:                     #393e3b;
+$gray:                          #585e5a;
+$gray-light:                    #848f8f;
+$gray-lighter:                  #ecefee;
+
+$brand-primary:                 #fc676e;
+
+// Buttons
+$btn-primary-bg:                $brand-primary;
+$btn-primary-border:            $btn-primary-bg;
+
+// Links
+$link-color:                    $brand-primary;
+$link-hover-color:              darken($link-color, 15%);
+
+// Navbar
+$navbar-light-color:            $gray-light;
+$navbar-light-hover-color:      darken($gray-light, 15%);
+$navbar-light-active-color:     $gray-dark;
+
+// Border
+$hr-border-color:               $gray-lighter;
+$card-border-color:             $hr-border-color;
+$pagination-border-color:       $hr-border-color;
+
+$border-radius:                 .75rem;
+$card-border-radius:            1.25rem;
+$btn-border-radius:             $border-radius;
+$navbar-toggler-border-radius:  $border-radius;
+
+// Jumbotron
+$jumbotron-bg:                  $base-color;
+
+// Code
+$code-color:                    $gray-dark;
+
+//...
