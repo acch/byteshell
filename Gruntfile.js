@@ -491,4 +491,13 @@ module.exports = function(grunt) {
     'copy:assets_post'
   ]);
 
+  // process only assets
+  grunt.registerTask('assets', [
+    'xmlopts',
+    'copy:assets_pre',
+    'responsive_images',
+    'imagemin',
+    'copy:assets_post'
+  ]);
+
 };
