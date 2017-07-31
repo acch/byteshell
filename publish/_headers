@@ -1,3 +1,5 @@
 /css/*
 /js/*
-  max-age: 86400
+  Cache-Control: public, max-age=86400
+/assets/*
+  Cache-Control: public, max-age=360000
